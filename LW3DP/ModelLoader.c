@@ -9,7 +9,7 @@
 
 
 
-void LoadAssimp(const char *fname)
+Assimp_object LoadAssimp(const char *fname)
 {
     const struct aiScene *scene = aiImportFile(fname, 
         aiProcess_Triangulate |
@@ -17,9 +17,68 @@ void LoadAssimp(const char *fname)
         aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
     );
 
+    Assimp_object ass;
+
+    int total_vertices = 0, total_indices = 0;
+    for (size_t i = 0; i < scene->mNumMeshes; i++)
+    {
+        total_vertices += scene->mMeshes[i]->mNumVertices;
+    }
+    total_vertices = total_vertices * 8;
+
+    for (size_t i = 0; i < scene->mNumMeshes; i++)
+    {
+        for (size_t f = 0; f < scene->mMeshes[i]->mNumFaces; f++)
+        {
+            total_indices += scene->mMeshes[i]->mFaces[f].mNumIndices;
+        }
+    }
     
+    printf("total vertices %d\n", total_vertices);
+
+    GLfloat *vertices_data = malloc(sizeof( GLfloat ) * total_vertices);
+    GLint *indices_data = malloc(sizeof(GLint) * total_indices);
+
+    ass.num_vertices = total_vertices;
+    ass.num_indices = total_indices;
+
+    int vidx = 0, iidx = 0;
+
+    int bV = 0;
+
+    for (size_t m = 0; m < scene->mNumMeshes; m++)
+    {
+        for (size_t i = 0; i < scene->mMeshes[m]->mNumVertices; i++)
+        {
+            vertices_data[vidx++] = scene->mMeshes[m]->mVertices[i].x;
+            vertices_data[vidx++] = scene->mMeshes[m]->mVertices[i].y;
+            vertices_data[vidx++] = scene->mMeshes[m]->mVertices[i].z;
+
+            vertices_data[vidx++] = scene->mMeshes[m]->mTextureCoords[0][i].x;
+            vertices_data[vidx++] = scene->mMeshes[m]->mTextureCoords[0][i].y;
+
+            vertices_data[vidx++] = scene->mMeshes[m]->mNormals[i].x;
+            vertices_data[vidx++] = scene->mMeshes[m]->mNormals[i].y;
+            vertices_data[vidx++] = scene->mMeshes[m]->mNormals[i].z;
+        }
+
+        for (size_t f = 0; f < scene->mMeshes[m]->mNumFaces; f++)
+        {
+            for (size_t i = 0; i < scene->mMeshes[m]->mFaces[f].mNumIndices; i++)
+            {
+                indices_data[iidx++] = scene->mMeshes[m]->mFaces[f].mIndices[i];
+            }
+        }
+
+        bV += scene->mMeshes[m]->mNumVertices;
+    }
     
     aiReleaseImport(scene);
+
+    ass.vertices = vertices_data;
+    ass.indices = indices_data;
+
+    return ass;
 }
 
 
@@ -407,5 +466,12 @@ OBJ_face *LoadOBJ(const char *fname, int buffer_length, int *n_faces)
     fclose(f);
 
     *n_faces = nfaces;
+
+    printf("loaded %d vertices\n", nfaces * 8);
+    
+    printf("VERTEX %d DATA %f %f %f %f %f %f %f %f\n", 1, faces[1].vertex[0], faces[1].vertex[1]
+                                                    , faces[1].vertex[2], faces[1].texture_coord[0], faces[1].texture_coord[1]
+                                                    , faces[1].normal[0], faces[1].normal[1], faces[1].normal[2]);
+
     return faces;
 }

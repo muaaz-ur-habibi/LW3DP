@@ -183,7 +183,15 @@ LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
 
             if (GetOpenFileNameA(&ofn))
             {
-                LoadAssimp(ofn.lpstrFile);
+                Assimp_object asso = LoadAssimp(ofn.lpstrFile);
+                Model_blueprint model = RendererCreateModel(asso, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
+
+                UniformSend4x4Matrix(model.shader_program, "model", model.model);
+                TextureBindNoTexture(&model);
+                models[n_models] = model;
+                n_models++;
+
+                printf("model should be loaded\n");
             }
             break;
         }

@@ -61,17 +61,6 @@ Model_blueprint RendererCreateModelAOS(
     return model;
 }
 
-void RendererCreateModelSOA()
-{
-    Models_blueprints mbs;
-    glGenBuffers(ARRAY_SIZE(mbs.m_Buffers), mbs.m_Buffers);
-
-    glGenVertexArrays(1, &mbs.VAO);
-    VAOBindVertexArray(mbs.VAO);
-
-    
-}
-
 // creates the data for the vbo and ebo
 Model_blueprint RendererCreateObjModel(OBJ_face *faces, int nfaces, char *vertex_shader_path, char *fragment_shader_path)
 {
@@ -108,9 +97,26 @@ Model_blueprint RendererCreateObjModel(OBJ_face *faces, int nfaces, char *vertex
     attribs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(0 * sizeof(float))};
     attribs[1] = (VAOAttribute){1, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(3 * sizeof(float))};
     attribs[2] = (VAOAttribute){2, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(5 * sizeof(float))};
+    
     model = RendererCreateModelAOS(vertices_data, v_idx * sizeof(GLfloat), indices_data, indices_written * sizeof(GLint), attribs, 3, vertex_shader_path, fragment_shader_path);
 
     model.indices_count = indices_written;
+
+    return model;
+}
+
+Model_blueprint RendererCreateModel(Assimp_object asso, char *vertex_shader_path, char *fragment_shader_path)
+{
+    Model_blueprint model;
+
+    VAOAttribute *attribs = VAOCreateVAOAttributeArrays(3);
+    attribs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(0 * sizeof(float))};
+    attribs[1] = (VAOAttribute){1, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(3 * sizeof(float))};
+    attribs[2] = (VAOAttribute){2, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(5 * sizeof(float))};
+    
+    model = RendererCreateModelAOS(asso.vertices, asso.num_vertices * sizeof(GLfloat), asso.indices, asso.num_indices * sizeof(GLint), attribs, 3, vertex_shader_path, fragment_shader_path);
+
+    printf("created model\n");
 
     return model;
 }

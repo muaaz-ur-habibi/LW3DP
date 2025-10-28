@@ -9,7 +9,6 @@
 #include "VBO.h"
 #include "EBO.h"
 #include "Shaders.h"
-#include "ModelLoader.h"
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
@@ -48,6 +47,14 @@ typedef struct
     int n_faces, n_mats;
 } OBJ_object;
 
+typedef struct
+{
+    GLfloat *vertices;
+    GLint *indices;
+    int num_vertices, num_indices;
+} Assimp_object;
+
+
 // AOS version
 typedef struct
 {
@@ -69,8 +76,6 @@ typedef struct
     GLuint VAO;
 } Models_blueprints;
 
-GLuint m_Buffers[NUM_BUFFERS] = { 0 };
-
 Model_blueprint RendererCreateModelAOS(
     GLfloat *vertices, GLsizeiptr vertices_size,
     GLint *indices, GLsizeiptr indices_size,
@@ -79,6 +84,7 @@ Model_blueprint RendererCreateModelAOS(
 );
 
 Model_blueprint RendererCreateObjModel(OBJ_face *faces, int nfaces, char *vertex_shader_path, char *fragment_shader_path);
+Model_blueprint RendererCreateModel(Assimp_object asso, char *vertex_shader_path, char *fragment_shader_path);
 
 void RendererCopyVec3ToModel(Model_blueprint *m, vec3 vector3);
 void RendererRotateModel(Model_blueprint *m, float angles_in_rad[3]);
