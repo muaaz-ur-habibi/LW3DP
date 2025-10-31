@@ -19,6 +19,8 @@ typedef struct
 
 void VAOBindVertexArray(GLuint VAO);
 void VAOAttribSetAndEnable(VAOAttribute attribute, GLuint VBO);
+void VAODraw(GLuint VAO, GLsizei count);
 VAOAttribute *VAOCreateVAOAttributeArrays(int amount);
+void VAODump(GLuint VAO, GLsizeiptr size);
 
 #endif

@@ -7,7 +7,72 @@
 
 #include "headers/ModelLoader.h"
 
+void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene, 
+                      Assimp_mesh **mesh_list, int mesh_idx, unsigned int base_vertex)
+{
+    Assimp_mesh *a_mesh = malloc(sizeof(Assimp_mesh));
+    int ptr = 0;    
 
+    // 1. ALLOCATE MEMORY for vertices
+    int vertex_size = 8; // 3 pos + 2 tex + 3 normal
+    int total_vertices = mesh->mNumVertices * vertex_size;
+    
+    a_mesh->vertices = (GLfloat*)malloc(sizeof(GLfloat) * total_vertices);
+    
+    if (!a_mesh->vertices) {
+        printf("ERROR: Failed to allocate memory for vertices\n");
+        return;
+    }
+
+    // 2. PROCESS VERTICES with safety checks
+    for (size_t i = 0; i < mesh->mNumVertices; i++)
+    {
+        // Position (always exists)
+        a_mesh->vertices[ptr++] = mesh->mVertices[i].x;
+        a_mesh->vertices[ptr++] = mesh->mVertices[i].y;
+        a_mesh->vertices[ptr++] = mesh->mVertices[i].z;
+
+        // Texture coordinates (check if they exist)
+        if (mesh->mTextureCoords[0]) {
+            a_mesh->vertices[ptr++] = mesh->mTextureCoords[0][i].x;
+            a_mesh->vertices[ptr++] = mesh->mTextureCoords[0][i].y;
+        } else {
+            a_mesh->vertices[ptr++] = 0.0f;
+            a_mesh->vertices[ptr++] = 0.0f;
+        }
+
+        // Normals (check if they exist)
+        if (mesh->mNormals) {
+            a_mesh->vertices[ptr++] = mesh->mNormals[i].x;
+            a_mesh->vertices[ptr++] = mesh->mNormals[i].y;
+            a_mesh->vertices[ptr++] = mesh->mNormals[i].z;
+        } else {
+            a_mesh->vertices[ptr++] = 0.0f;
+            a_mesh->vertices[ptr++] = 0.0f; // Default up normal
+            a_mesh->vertices[ptr++] = 0.0f;
+        }
+    }
+
+    a_mesh->vertex_count = ptr;
+    
+    // 3. PROCESS INDICES (if you need them)
+    a_mesh->index_count = mesh->mNumFaces * 3; // Assuming triangulated
+    a_mesh->indices = (unsigned int*)malloc(sizeof(unsigned int) * a_mesh->index_count);
+    
+    if (a_mesh->indices) {
+        unsigned int index_ptr = 0;
+
+        for (size_t i = 0; i < mesh->mNumFaces; i++) {
+            a_mesh->indices[index_ptr++] = mesh->mFaces[i].mIndices[0];
+            a_mesh->indices[index_ptr++] = mesh->mFaces[i].mIndices[1];
+            a_mesh->indices[index_ptr++] = mesh->mFaces[i].mIndices[2];
+        }
+    }
+
+    // 5. CORRECT ASSIGNMENT
+    (*mesh_list)[mesh_idx] = *a_mesh;
+    free(a_mesh);
+}
 
 Assimp_object LoadAssimp(const char *fname)
 {
@@ -18,65 +83,23 @@ Assimp_object LoadAssimp(const char *fname)
     );
 
     Assimp_object ass;
+    Assimp_mesh *meshes = malloc( sizeof(Assimp_mesh) * scene->mNumMeshes );
 
-    int total_vertices = 0, total_indices = 0;
+    printf("Starting to load model\n");
+
+    unsigned int base_vertex = 0;
     for (size_t i = 0; i < scene->mNumMeshes; i++)
     {
-        total_vertices += scene->mMeshes[i]->mNumVertices;
+        ProcessAssimpMesh(scene->mMeshes[i], scene, &meshes, i, base_vertex);
+        base_vertex += scene->mMeshes[i]->mNumVertices;
     }
-    total_vertices = total_vertices * 8;
 
-    for (size_t i = 0; i < scene->mNumMeshes; i++)
-    {
-        for (size_t f = 0; f < scene->mMeshes[i]->mNumFaces; f++)
-        {
-            total_indices += scene->mMeshes[i]->mFaces[f].mNumIndices;
-        }
-    }
-    
-    printf("total vertices %d\n", total_vertices);
+    ass.meshes = meshes;
+    ass.n_meshes = scene->mNumMeshes;
 
-    GLfloat *vertices_data = malloc(sizeof( GLfloat ) * total_vertices);
-    GLint *indices_data = malloc(sizeof(GLint) * total_indices);
-
-    ass.num_vertices = total_vertices;
-    ass.num_indices = total_indices;
-
-    int vidx = 0, iidx = 0;
-
-    int bV = 0;
-
-    for (size_t m = 0; m < scene->mNumMeshes; m++)
-    {
-        for (size_t i = 0; i < scene->mMeshes[m]->mNumVertices; i++)
-        {
-            vertices_data[vidx++] = scene->mMeshes[m]->mVertices[i].x;
-            vertices_data[vidx++] = scene->mMeshes[m]->mVertices[i].y;
-            vertices_data[vidx++] = scene->mMeshes[m]->mVertices[i].z;
-
-            vertices_data[vidx++] = scene->mMeshes[m]->mTextureCoords[0][i].x;
-            vertices_data[vidx++] = scene->mMeshes[m]->mTextureCoords[0][i].y;
-
-            vertices_data[vidx++] = scene->mMeshes[m]->mNormals[i].x;
-            vertices_data[vidx++] = scene->mMeshes[m]->mNormals[i].y;
-            vertices_data[vidx++] = scene->mMeshes[m]->mNormals[i].z;
-        }
-
-        for (size_t f = 0; f < scene->mMeshes[m]->mNumFaces; f++)
-        {
-            for (size_t i = 0; i < scene->mMeshes[m]->mFaces[f].mNumIndices; i++)
-            {
-                indices_data[iidx++] = scene->mMeshes[m]->mFaces[f].mIndices[i];
-            }
-        }
-
-        bV += scene->mMeshes[m]->mNumVertices;
-    }
+    printf("Loader indices check: no of indices=%d, first index=%d\n", meshes[0].index_count, meshes[0].indices[0]);
     
     aiReleaseImport(scene);
-
-    ass.vertices = vertices_data;
-    ass.indices = indices_data;
 
     return ass;
 }
@@ -449,7 +472,7 @@ OBJ_face *LoadOBJ(const char *fname, int buffer_length, int *n_faces)
         else if (!strcmp("usemtl", buffer))
         {
             nobjects++;
-            objects = realloc(objects, sizeof(OBJ_object) * nobjects);
+            // objects = realloc(objects, sizeof(OBJ_object) * nobjects);
             fgets(buffer, buffer_length, f);
         }
         else { 

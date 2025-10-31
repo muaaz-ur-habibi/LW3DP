@@ -26,7 +26,7 @@
 #define MENU_POSYSLIDER 10
 #define MENU_POSZSLIDER 11
 
-#define MODELS_INITIALAMOUNT 10
+#define MODELS_INITIALAMOUNT 20
 
 int selected_model = -1;
 vec3 selected_color = {1.0f, 0.0f, 0.0f}; // Red for selected
@@ -183,13 +183,18 @@ LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
 
             if (GetOpenFileNameA(&ofn))
             {
-                Assimp_object asso = LoadAssimp(ofn.lpstrFile);
-                Model_blueprint model = RendererCreateModel(asso, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
+                Assimp_object ass = LoadAssimp(ofn.lpstrFile);
+                Model_blueprint *model_meshes = RendererCreateModel(ass, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
 
-                UniformSend4x4Matrix(model.shader_program, "model", model.model);
-                TextureBindNoTexture(&model);
-                models[n_models] = model;
-                n_models++;
+                // UniformSend4x4Matrix(model.shader_program, "model", model.model);
+                printf("Adding meshes to main array\n");
+                for (size_t i = 0; i < ass.n_meshes; i++)
+                {
+                    TextureBindNoTexture(&model_meshes[i]);
+                    models[n_models] = model_meshes[i];
+                    n_models++;
+                    printf("Added mesh %d\n", i);
+                }
 
                 printf("model should be loaded\n");
             }
@@ -369,8 +374,9 @@ int main()
             {
                 TextureBindTexture(models[i], GL_TEXTURE_2D);
             }
-
+            
             EBODraw(models[i].indices_count, GL_UNSIGNED_INT, models[i].VAO);
+            //VAODraw(models[i].VAO, models[i].indices_count);
         }
 
         UniformSend4x4Matrix(c.shader_program, "camMat", camMat);

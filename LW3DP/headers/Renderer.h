@@ -9,6 +9,7 @@
 #include "VBO.h"
 #include "EBO.h"
 #include "Shaders.h"
+#include "Uniform.h"
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
@@ -42,24 +43,22 @@ typedef struct
 
 typedef struct
 {
-    OBJ_face *faces;
-    OBJ_Material *mats;
-    int n_faces, n_mats;
-} OBJ_object;
+    GLfloat *vertices; // contains vertex coords, texture coords and normal coords in form x y z u v nx ny nz
+    GLuint *indices;
+    int vertex_count, index_count;
+} Assimp_mesh;
 
 typedef struct
 {
-    GLfloat *vertices;
-    GLint *indices;
-    int num_vertices, num_indices;
+    Assimp_mesh *meshes;
+    int n_meshes;
 } Assimp_object;
-
 
 // AOS version
 typedef struct
 {
     GLfloat *vertices;
-    GLint *indices;
+    GLuint *indices;
     int vertices_count, indices_count;
     GLsizeiptr vertices_size, indices_size;
     GLuint shader_program, VAO, VBO, EBO, texture;
@@ -69,13 +68,6 @@ typedef struct
     int is_light;
 } Model_blueprint;
 
-// SOA version
-typedef struct
-{
-    GLuint m_Buffers[NUM_BUFFERS];
-    GLuint VAO;
-} Models_blueprints;
-
 Model_blueprint RendererCreateModelAOS(
     GLfloat *vertices, GLsizeiptr vertices_size,
     GLint *indices, GLsizeiptr indices_size,
@@ -84,7 +76,7 @@ Model_blueprint RendererCreateModelAOS(
 );
 
 Model_blueprint RendererCreateObjModel(OBJ_face *faces, int nfaces, char *vertex_shader_path, char *fragment_shader_path);
-Model_blueprint RendererCreateModel(Assimp_object asso, char *vertex_shader_path, char *fragment_shader_path);
+Model_blueprint *RendererCreateModel(Assimp_object asso, char *vertex_shader_path, char *fragment_shader_path);
 
 void RendererCopyVec3ToModel(Model_blueprint *m, vec3 vector3);
 void RendererRotateModel(Model_blueprint *m, float angles_in_rad[3]);

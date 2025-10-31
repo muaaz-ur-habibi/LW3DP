@@ -102,23 +102,45 @@ Model_blueprint RendererCreateObjModel(OBJ_face *faces, int nfaces, char *vertex
 
     model.indices_count = indices_written;
 
+    VBODump(model.VBO, model.vertices_size);
+
     return model;
 }
 
-Model_blueprint RendererCreateModel(Assimp_object asso, char *vertex_shader_path, char *fragment_shader_path)
+Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path, char *fragment_shader_path)
 {
-    Model_blueprint model;
+    Model_blueprint *models;
+    models = malloc(sizeof(Model_blueprint) * ass.n_meshes);
 
     VAOAttribute *attribs = VAOCreateVAOAttributeArrays(3);
     attribs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(0 * sizeof(float))};
     attribs[1] = (VAOAttribute){1, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(3 * sizeof(float))};
     attribs[2] = (VAOAttribute){2, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(5 * sizeof(float))};
+
+    printf("Starting to create model\n");
     
-    model = RendererCreateModelAOS(asso.vertices, asso.num_vertices * sizeof(GLfloat), asso.indices, asso.num_indices * sizeof(GLint), attribs, 3, vertex_shader_path, fragment_shader_path);
+    for (size_t i = 0; i < ass.n_meshes; i++)
+    {
+        printf("Creating mesh %d\n", i);
+        models[i] = RendererCreateModelAOS(
+            ass.meshes[i].vertices,
+            ass.meshes[i].vertex_count * sizeof(GLfloat),
+            ass.meshes[i].indices,
+            ass.meshes[i].index_count * sizeof(GLuint),
+            attribs, 3, vertex_shader_path, fragment_shader_path
+        );
 
-    printf("created model\n");
+        VBODump(models[i].VBO, models[i].vertices_size);
+        
+        models[i].indices_count = ass.meshes[i].index_count;
 
-    return model;
+        printf("Created mesh\n");
+    }
+
+    printf("Model creater indices check: no of indices=%d, first index=%d\n", models[0].indices_count, models[0].indices[0]);
+
+    printf("Created array of meshes\n");
+    return models;
 }
 
 void DeleteModels(Model_blueprint m)
