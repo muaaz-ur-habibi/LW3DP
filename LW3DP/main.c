@@ -211,7 +211,7 @@ LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
 }
 */
 
-int main()
+int main(int argc, char *argv[])
 {
     glfwInit();
 
@@ -239,6 +239,8 @@ int main()
 
     glViewport(0, 0, WIDTH, HEIGHT);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     ctx = nk_glfw3_init(&glfw, window, NK_GLFW3_INSTALL_CALLBACKS);
     nk_glfw3_font_stash_begin(&glfw, &atlas);
@@ -310,17 +312,28 @@ int main()
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
+    Assimp_object ass = LoadAssimp("D:/programming/LW3DP/LW3DP/models/simple_girl/girl OBJ.obj");
+    Model_blueprint *models_created = RendererCreateModel(ass, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
+
+    for (size_t i = 0; i < ass.n_meshes; i++)
+    {
+        models[n_models] = models_created[i]; n_models++;
+    }
+    
+
     while (!glfwWindowShouldClose(window))
     {
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
 
+        // /*
         nk_glfw3_new_frame(&glfw);
         if (
             nk_begin(ctx, "LW3DP", nk_rect(0, 0, (float)w, (float)h),
             NK_WINDOW_BORDER)
         )
         {
+            // drawing the top menubar
             nk_menubar_begin(ctx);
             nk_layout_row_static(ctx, 25, 40, 5);
 
@@ -360,17 +373,29 @@ int main()
 
                 nk_menu_end(ctx);
             }
-            
-
             nk_menubar_end(ctx);
 
             nk_end(ctx);
+            if (
+                nk_begin(
+                    ctx, "Tools", nk_rect(w-(w/4), 0, w/4, h),
+                    NK_WINDOW_TITLE | NK_WINDOW_BORDER
+                )
+            )
+            {
+
+                nk_end(ctx);
+            }
+
+            nk_window_set_focus(ctx, "Tools");
         }
+        // */
         
         glClearColor(0.35, 0.36, 0.23, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, 512 * 1024, 128 * 1024);
+        glEnable(GL_DEPTH_TEST);
         
         // Process input
         camera_process_keyboard(&cam, window);

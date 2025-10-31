@@ -96,9 +96,6 @@ void camera_process_mouse(Camera *cam, GLFWwindow *window, float width, float he
         glm_normalize(normalized_right);
         glm_vec3_rotate(cam->orientation, glm_rad(-rotX), normalized_right);
 
-        // Decides whether or not the next vertical Orientation is legal or not
-        
-
 		// Rotates the Orientation left and right
         glm_vec3_rotate(cam->orientation, glm_rad(-rotY), cam->up);
 

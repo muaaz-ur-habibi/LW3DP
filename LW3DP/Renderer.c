@@ -102,8 +102,6 @@ Model_blueprint RendererCreateObjModel(OBJ_face *faces, int nfaces, char *vertex
 
     model.indices_count = indices_written;
 
-    VBODump(model.VBO, model.vertices_size);
-
     return model;
 }
 
@@ -129,8 +127,6 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
             ass.meshes[i].index_count * sizeof(GLuint),
             attribs, 3, vertex_shader_path, fragment_shader_path
         );
-
-        VBODump(models[i].VBO, models[i].vertices_size);
         
         models[i].indices_count = ass.meshes[i].index_count;
 
