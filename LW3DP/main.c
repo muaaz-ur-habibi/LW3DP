@@ -1,30 +1,30 @@
-#include <glad/glad.h>
-#define  GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <cglm/cglm.h>
 
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#define NK_IMPLEMENTATION
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FIXED_TYPES
+#include <nuklear/nuklear.h>
+
+#define NK_GLFW_GL3_IMPLEMENTATION
+#include <nuklear/nuklear_glfw_gl3.h>
+
+#include <windows.h>
+
 #include "headers/Camera.h"
-#include "headers/GUI.h"
 #include "headers/ModelLoader.h"
 
 #define ARRAY_LEN(array) (sizeof(array) / (sizeof((array)[0])))
 
-#define MENU_LOADOBJMODEL 1
-#define MENU_LOADANYMODEL 2
-#define MENU_TRANSFORMROTATE 6
-#define MENU_TRANSFORMPOSITION 7
-#define MENU_TRANSFORMSCALE 8
-
-#define MENU_ROTXSLIDER 3
-#define MENU_ROTYSLIDER 4
-#define MENU_ROTZSLIDER 5
-#define MENU_POSXSLIDER 9
-#define MENU_POSYSLIDER 10
-#define MENU_POSZSLIDER 11
 
 #define MODELS_INITIALAMOUNT 20
 
@@ -36,13 +36,9 @@ char *GLOBAL_FRAGMENT_SHADER_PATH = "shaders/basicFragShader.frag";
 
 Camera cam;
 int WIDTH = 800; int HEIGHT = 800;
-static WNDPROC gl_wnd_proc;
 int n_models, n_lights;
 Model_blueprint *models;
 Model_blueprint *light_model;
-
-HWND hRotX, hRotY, hRotZ, hPosX, hPosY, hPosZ, hScaleX, hScaleY, hScaleZ;
-
 
 int get_model_clicked(GLFWwindow* window, mat4 camMat) {
     double xpos, ypos;
@@ -81,11 +77,9 @@ void handle_mouse_picking(GLFWwindow* window, mat4 camMat) {
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         selected_model = get_model_clicked(window, camMat);
         if (selected_model != -1) {
-            ShowWindow(hRotX, SW_SHOW); ShowWindow(hRotY, SW_SHOW); ShowWindow(hRotZ, SW_SHOW);
-            ShowWindow(hPosX, SW_SHOW); ShowWindow(hPosY, SW_SHOW); ShowWindow(hPosZ, SW_SHOW);
+            // show controls
         } else {
-            ShowWindow(hRotX, SW_HIDE); ShowWindow(hRotY, SW_HIDE); ShowWindow(hRotZ, SW_HIDE);
-            ShowWindow(hPosX, SW_HIDE); ShowWindow(hPosY, SW_HIDE); ShowWindow(hPosZ, SW_HIDE);
+            // hide controls
         }
     }
 }
@@ -101,7 +95,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     camera_update_projection(&cam, 45, aspect_ratio, 0.3, 100.0);
 }
 
-
+/*
 LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
 {
     switch (msg)
@@ -113,10 +107,13 @@ LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
             float rotY = SendMessage(hRotY, TBM_GETPOS, 0, 0);
             float rotZ = SendMessage(hRotZ, TBM_GETPOS, 0, 0);
 
-            float posX = SendMessage(hPosX, TBM_GETPOS, 0, 0); posX/=100;
-            float posY = SendMessage(hPosY, TBM_GETPOS, 0, 0); posY/=100;
-            float posZ = SendMessage(hPosZ, TBM_GETPOS, 0, 0); posZ/=100;
-            
+            float posX = SendMessage(hPosX, TBM_GETPOS, 0, 0);
+            posX /= 100;
+            float posY = SendMessage(hPosY, TBM_GETPOS, 0, 0);
+            posY /= 100;
+            float posZ = SendMessage(hPosZ, TBM_GETPOS, 0, 0);
+            posZ /= 100;
+
             // Apply rotations in your preferred order
             glm_mat4_identity(models[selected_model].model);
 
@@ -125,7 +122,7 @@ LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
             glm_rotate(models[selected_model].model, glm_rad(rotZ), (vec3){0, 0, 1});
 
             RendererCopyVec3ToModel(&models[selected_model], (vec3){posX, posY, posZ});
-            
+
             SetFocus(hWnd);
         }
         break;
@@ -158,9 +155,11 @@ LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
                 if (n_models > MODELS_INITIALAMOUNT)
                 {
                     printf("\n\nError: models amount exceeded 10\n\n\n");
-                } else {
+                }
+                else
+                {
                     UniformSend4x4Matrix(model.shader_program, "model", model.model);
-                    //TextureCreateTexture(&model.texture, model.shader_program, "tex0", 0, "assets/Tbrick.png");
+                    // TextureCreateTexture(&model.texture, model.shader_program, "tex0", 0, "assets/Tbrick.png");
                     TextureBindNoTexture(&model);
                     models[n_models] = model;
                     n_models++;
@@ -201,14 +200,13 @@ LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
             break;
         }
     }
-    
+
     return CallWindowProc(gl_wnd_proc, hWnd, msg, wPar, lPar);
 }
-
+*/
 
 int main()
 {
-    INITCOMMONCONTROLSEX ccex = ccInit();
     glfwInit();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -219,33 +217,9 @@ int main()
     if (!window) { printf("error in window\n"); return 1; }
     glfwMakeContextCurrent(window);
 
-    HWND hWnd = glfwGetWin32Window(window);
-    
-    hRotX = CreateWindowA(
-        TRACKBAR_CLASSA, "", WS_CHILD | TBS_AUTOTICKS | TBS_HORZ,
-        20, 20, 200, 50, hWnd, (HMENU)MENU_ROTXSLIDER, GetModuleHandle(NULL), NULL
-    ); SendMessageA(hRotX, TBM_SETRANGE, TRUE, MAKELONG(0, 360)); SendMessageA(hRotX, TBM_SETPAGESIZE, 0, 10);
-    hRotY = CreateWindowA(
-        TRACKBAR_CLASSA, "", WS_CHILD | TBS_AUTOTICKS | TBS_HORZ,
-        20, 72, 200, 50, hWnd, (HMENU)MENU_ROTYSLIDER, GetModuleHandle(NULL), NULL
-    ); SendMessageA(hRotY, TBM_SETRANGE, TRUE, MAKELONG(0, 360)); SendMessageA(hRotY, TBM_SETPAGESIZE, 0, 10);
-    hRotZ = CreateWindowA(
-        TRACKBAR_CLASSA, "", WS_CHILD | TBS_AUTOTICKS | TBS_HORZ,
-        20, 124, 200, 50, hWnd, (HMENU)MENU_ROTZSLIDER, GetModuleHandle(NULL), NULL
-    ); SendMessageA(hRotZ, TBM_SETRANGE, TRUE, MAKELONG(0, 360)); SendMessageA(hRotZ, TBM_SETPAGESIZE, 0, 10);
-
-    hPosX = CreateWindowA(
-        TRACKBAR_CLASSA, "", WS_CHILD | TBS_AUTOTICKS | TBS_HORZ,
-        20, 200, 200, 50, hWnd, (HMENU)MENU_POSXSLIDER, GetModuleHandle(NULL), NULL
-    ); SendMessageA(hPosX, TBM_SETRANGE, TRUE, MAKELONG(0, 300)); SendMessageA(hPosX, TBM_SETPAGESIZE, 0, 10);
-    hPosY = CreateWindowA(
-        TRACKBAR_CLASSA, "", WS_CHILD | TBS_AUTOTICKS | TBS_HORZ,
-        20, 252, 200, 50, hWnd, (HMENU)MENU_POSYSLIDER, GetModuleHandle(NULL), NULL
-    ); SendMessageA(hPosY, TBM_SETRANGE, TRUE, MAKELONG(0, 300)); SendMessageA(hPosY, TBM_SETPAGESIZE, 0, 10);
-    hPosZ = CreateWindowA(
-        TRACKBAR_CLASSA, "", WS_CHILD | TBS_AUTOTICKS | TBS_HORZ,
-        20, 304, 200, 50, hWnd, (HMENU)MENU_POSZSLIDER, GetModuleHandle(NULL), NULL
-    ); SendMessageA(hPosZ, TBM_SETRANGE, TRUE, MAKELONG(0, 300)); SendMessageA(hPosZ, TBM_SETPAGESIZE, 0, 10);
+    struct nk_glfw glfw = {0};
+    struct nk_context *ctx;
+    struct nk_font_atlas *atlas;
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -258,38 +232,11 @@ int main()
     glViewport(0, 0, WIDTH, HEIGHT);
     glEnable(GL_DEPTH_TEST);
 
-    char *loading_menu_items[] = {
-        "Load .obj model", "Load any model"
-    };
-    char *transform_menu_items[] = {
-        "Rotate model", "Position model", "Scale model"
-    };
-    UINT_PTR loading_item_ids[] = {
-        MENU_LOADOBJMODEL, MENU_LOADANYMODEL
-    };
-    UINT_PTR transform_item_ids[] = {
-        MENU_TRANSFORMROTATE, MENU_TRANSFORMPOSITION, MENU_TRANSFORMSCALE
-    };
+    ctx = nk_glfw3_init(&glfw, window, NK_GLFW3_INSTALL_CALLBACKS);
+    nk_glfw3_font_stash_begin(&glfw, &atlas);
+    nk_glfw3_font_stash_end(&glfw);
+
     
-    HMENU loading_sub_menu = CreateSubMenu(loading_menu_items, loading_item_ids, 2);
-    HMENU transform_sub_menu = CreateSubMenu(transform_menu_items, transform_item_ids, 3);
-
-    HMENU sub_menus[] = {
-        loading_sub_menu, transform_sub_menu
-    };
-    char *sub_menu_names[] = {
-        "&Model", "&Transform"
-    };
-
-    HMENU main_menu = CreateMenuBar(hWnd, sub_menus, sub_menu_names, 2);
-
-    RECT rt = {0, 0, WIDTH, HEIGHT};
-    AdjustWindowRect(&rt, GetWindowLongA(hWnd, GWL_STYLE), TRUE);
-    MoveWindow(hWnd, 0, 0, rt.right-rt.left, rt.bottom-rt.top, TRUE);
-
-    gl_wnd_proc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)GUI_CALLBACK);
-
-    int len_of_single_vertex;
     GLfloat lightVertices[] =
     { //     COORDINATES     //
         -0.1f, -0.1f,  0.1f,
@@ -318,7 +265,7 @@ int main()
         4, 6, 7
     };
 
-    // creating the models
+    // creating a simple light model
     models = malloc( sizeof(Model_blueprint) * MODELS_INITIALAMOUNT );
 
     VAOAttribute *t_attrs = VAOCreateVAOAttributeArrays(1);
@@ -331,7 +278,6 @@ int main()
     free(t_attrs);
 
     RendererCopyVec3ToModel(&c, (vec3){-1.2f, 1.0f, 1.0f});
-
     UniformSend4x4Matrix(c.shader_program, "model", c.model);
     
     // create camera
@@ -341,10 +287,82 @@ int main()
     // lighting
     vec4 lightC = {1.0f, 1.0f, 1.0f, 1.0f};
 
+    // ofn used for loading model files
+    OPENFILENAME ofn;
+    char szFile[260] = "";
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
     while (!glfwWindowShouldClose(window))
     {
+        int w, h;
+        glfwGetFramebufferSize(window, &w, &h);
+
+        nk_glfw3_new_frame(&glfw);
+        if (
+            nk_begin(ctx, "LW3DP", nk_rect(0, 0, (float)w, (float)h),
+            NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE)
+        )
+        {
+            nk_menubar_begin(ctx);
+            nk_layout_row_static(ctx, 25, 40, 5);
+
+            if (nk_menu_begin_label(ctx, "File", NK_TEXT_LEFT, nk_vec2(120, 200)))
+            {
+                nk_layout_row_dynamic(ctx, 22, 1);
+
+                if (nk_menu_item_label(ctx, "Load model", NK_TEXT_LEFT))
+                {
+                    if (GetOpenFileNameA(&ofn))
+                    {
+                        Assimp_object ass = LoadAssimp(ofn.lpstrFile);
+                        Model_blueprint *models_created = RendererCreateModel(ass, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
+
+                        for (size_t i = 0; i < ass.n_meshes; i++)
+                        {
+                            models[n_models] = models_created[i]; n_models++;
+                        }
+                        
+                    }
+                }
+                if (nk_menu_item_label(ctx, "Load OBJ", NK_TEXT_LEFT))
+                {
+                    ofn.lpstrFilter = "OBJ Files\0*.obj\0";
+                    if (GetOpenFileNameA(&ofn))
+                    {
+                        Assimp_object ass = LoadAssimp(ofn.lpstrFile);
+                        Model_blueprint *models_created = RendererCreateModel(ass, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
+
+                        for (size_t i = 0; i < ass.n_meshes; i++)
+                        {
+                            models[n_models] = models_created[i]; n_models++;
+                        }
+                        
+                    }
+                }
+
+                nk_menu_end(ctx);
+            }
+            
+
+            nk_menubar_end(ctx);
+
+            nk_end(ctx);
+        }
+        
         glClearColor(0.35, 0.36, 0.23, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, 512 * 1024, 128 * 1024);
         
         // Process input
         camera_process_keyboard(&cam, window);
@@ -396,6 +414,7 @@ int main()
     glDeleteTextures(1, &m.texture);
     glDeleteProgram(m.shader_program);
     */
+    nk_glfw3_shutdown(&glfw);
     glfwDestroyWindow(window);
     glfwTerminate();
 
