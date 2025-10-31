@@ -93,6 +93,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // Update camera projection with new aspect ratio
     float aspect_ratio = (float)width / (float)height;
     camera_update_projection(&cam, 45, aspect_ratio, 0.3, 100.0);
+
+    struct nk_glfw* glfw = (struct nk_glfw*)glfwGetWindowUserPointer(window);
+    if (glfw) {
+        glfw->width = width;
+        glfw->height = height;
+    }
 }
 
 /*
@@ -223,6 +229,8 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    glfwSetWindowUserPointer(window, &glfw);
+
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         printf("glad failed to load GL\n");
@@ -310,7 +318,7 @@ int main()
         nk_glfw3_new_frame(&glfw);
         if (
             nk_begin(ctx, "LW3DP", nk_rect(0, 0, (float)w, (float)h),
-            NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE)
+            NK_WINDOW_BORDER)
         )
         {
             nk_menubar_begin(ctx);
