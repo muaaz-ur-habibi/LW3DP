@@ -101,115 +101,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     }
 }
 
-/*
-LRESULT CALLBACK GUI_CALLBACK(HWND hWnd, UINT msg, WPARAM wPar, LPARAM lPar)
-{
-    switch (msg)
-    {
-    case WM_HSCROLL:
-        if (selected_model != -1)
-        {
-            float rotX = SendMessage(hRotX, TBM_GETPOS, 0, 0);
-            float rotY = SendMessage(hRotY, TBM_GETPOS, 0, 0);
-            float rotZ = SendMessage(hRotZ, TBM_GETPOS, 0, 0);
-
-            float posX = SendMessage(hPosX, TBM_GETPOS, 0, 0);
-            posX /= 100;
-            float posY = SendMessage(hPosY, TBM_GETPOS, 0, 0);
-            posY /= 100;
-            float posZ = SendMessage(hPosZ, TBM_GETPOS, 0, 0);
-            posZ /= 100;
-
-            // Apply rotations in your preferred order
-            glm_mat4_identity(models[selected_model].model);
-
-            glm_rotate(models[selected_model].model, glm_rad(rotX), (vec3){1, 0, 0});
-            glm_rotate(models[selected_model].model, glm_rad(rotY), (vec3){0, 1, 0});
-            glm_rotate(models[selected_model].model, glm_rad(rotZ), (vec3){0, 0, 1});
-
-            RendererCopyVec3ToModel(&models[selected_model], (vec3){posX, posY, posZ});
-
-            SetFocus(hWnd);
-        }
-        break;
-    case WM_COMMAND:
-        OPENFILENAMEA ofn;
-        char szFile[260] = "";
-        switch (LOWORD(wPar))
-        {
-        case MENU_LOADOBJMODEL:
-            // Initialize structure completely
-            ZeroMemory(&ofn, sizeof(ofn));
-            ofn.lStructSize = sizeof(ofn);
-            ofn.hwndOwner = hWnd;
-            ofn.lpstrFile = szFile;
-            ofn.nMaxFile = sizeof(szFile);
-            ofn.lpstrFilter = "OBJ Files\0*.obj\0All Files\0*.*\0";
-            ofn.nFilterIndex = 1;
-            ofn.lpstrFileTitle = NULL;
-            ofn.nMaxFileTitle = 0;
-            ofn.lpstrInitialDir = NULL;
-            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-            if (GetOpenFileNameA(&ofn))
-            {
-                int nf;
-                OBJ_face *faces = LoadOBJ(ofn.lpstrFile, 1024, &nf);
-                Model_blueprint model = RendererCreateObjModel(faces, nf, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
-                free(faces);
-
-                if (n_models > MODELS_INITIALAMOUNT)
-                {
-                    printf("\n\nError: models amount exceeded 10\n\n\n");
-                }
-                else
-                {
-                    UniformSend4x4Matrix(model.shader_program, "model", model.model);
-                    // TextureCreateTexture(&model.texture, model.shader_program, "tex0", 0, "assets/Tbrick.png");
-                    TextureBindNoTexture(&model);
-                    models[n_models] = model;
-                    n_models++;
-                }
-            }
-            break;
-        case MENU_LOADANYMODEL:
-            // Initialize structure completely
-            ZeroMemory(&ofn, sizeof(ofn));
-            ofn.lStructSize = sizeof(ofn);
-            ofn.hwndOwner = hWnd;
-            ofn.lpstrFile = szFile;
-            ofn.nMaxFile = sizeof(szFile);
-            ofn.lpstrFilter = "All Files\0*.*\0";
-            ofn.nFilterIndex = 1;
-            ofn.lpstrFileTitle = NULL;
-            ofn.nMaxFileTitle = 0;
-            ofn.lpstrInitialDir = NULL;
-            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-            if (GetOpenFileNameA(&ofn))
-            {
-                Assimp_object ass = LoadAssimp(ofn.lpstrFile);
-                Model_blueprint *model_meshes = RendererCreateModel(ass, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
-
-                // UniformSend4x4Matrix(model.shader_program, "model", model.model);
-                printf("Adding meshes to main array\n");
-                for (size_t i = 0; i < ass.n_meshes; i++)
-                {
-                    TextureBindNoTexture(&model_meshes[i]);
-                    models[n_models] = model_meshes[i];
-                    n_models++;
-                    printf("Added mesh %d\n", i);
-                }
-
-                printf("model should be loaded\n");
-            }
-            break;
-        }
-    }
-
-    return CallWindowProc(gl_wnd_proc, hWnd, msg, wPar, lPar);
-}
-*/
 
 int main(int argc, char *argv[])
 {
@@ -326,7 +217,56 @@ int main(int argc, char *argv[])
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
 
-        // /*
+        glClearColor(0.176, 0.176, 0.188, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // Process input
+        camera_process_keyboard(&cam, window);
+        camera_process_mouse(&cam, window, WIDTH, HEIGHT);
+        
+        // Update camera matrices
+        camera_update_view(&cam);
+        float aspect = (float)WIDTH/(float)HEIGHT;
+        camera_update_projection(&cam, 45, aspect, 0.3, 100.0);
+        glm_mat4_mul(cam.projection, cam.view, camMat);
+
+        /*
+            DRAWING THE MODELS
+        */
+        for (size_t i = 0; i < n_models; i++)
+        {
+            UniformSend4x4Matrix(models[i].shader_program, "camMat", camMat);
+            UniformSend4x4Matrix(models[i].shader_program, "model", models[i].model);
+
+            if (i == selected_model) {
+                UniformSendVec4(models[i].shader_program, "lightC", (vec4){1.0f, 0.0f, 0.0f, 1.0f});
+            } else {
+                UniformSendVec4(models[i].shader_program, "lightC", lightC);
+            }
+
+            UniformSendVec3(models[i].shader_program, "lightPos", c.position);
+            if (models[i].texture != 0)
+            {
+                TextureBindTexture(models[i], GL_TEXTURE_2D);
+            }
+            
+            EBODraw(models[i].indices_count, GL_UNSIGNED_INT, models[i].VAO);
+            //VAODraw(models[i].VAO, models[i].indices_count);
+        }
+
+        UniformSend4x4Matrix(c.shader_program, "camMat", camMat);
+        UniformSend4x4Matrix(c.shader_program, "model", c.model);
+        UniformSendVec4(c.shader_program, "lightC", lightC);
+        EBODraw(ARRAY_LEN(lightIndices), GL_UNSIGNED_INT, c.VAO);
+
+        /*
+            DRAWING THE GUI
+        */
+        struct nk_style *s;
+        s = &ctx->style;
+
+        nk_style_push_color(ctx, &s->window.background, nk_rgba(0, 0, 0, 0));
+        nk_style_push_style_item(ctx, &s->window.fixed_background, nk_style_item_color(nk_rgba(0, 0, 0, 0)));
         nk_glfw3_new_frame(&glfw);
         if (
             nk_begin(ctx, "LW3DP", nk_rect(0, 0, (float)w, (float)h),
@@ -360,93 +300,78 @@ int main(int argc, char *argv[])
                     ofn.lpstrFilter = "OBJ Files\0*.obj\0";
                     if (GetOpenFileNameA(&ofn))
                     {
-                        Assimp_object ass = LoadAssimp(ofn.lpstrFile);
-                        Model_blueprint *models_created = RendererCreateModel(ass, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
+                        int n_faces = 0;
+                        OBJ_face *faces = LoadOBJ(ofn.lpstrFile, 4096, &n_faces);
+                        Model_blueprint model_created = RendererCreateObjModel(faces, n_faces, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
 
-                        for (size_t i = 0; i < ass.n_meshes; i++)
-                        {
-                            models[n_models] = models_created[i]; n_models++;
-                        }
-                        
+                        models[n_models] = model_created;
+                        n_models++;
                     }
                 }
 
                 nk_menu_end(ctx);
             }
             nk_menubar_end(ctx);
+            
 
             nk_end(ctx);
+        }
+        nk_style_pop_color(ctx);
+        nk_style_pop_style_item(ctx);
+
+        // /*
+        s = &ctx->style;
+        nk_style_push_color(ctx, &s->window.background, nk_rgba(100, 0, 0, 255));
+        nk_style_push_style_item(ctx, &s->window.fixed_background, nk_style_item_color(nk_rgba(100, 0, 0, 255)));
+
+        if (
+        nk_begin(
+            ctx, "Toolkit", nk_rect(w-(w/4), 0, w/4, h),
+            NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_BACKGROUND
+            )
+        )
+        {
+            nk_layout_row_dynamic(ctx, 20, 1);
+            nk_label(ctx, "", NK_TEXT_CENTERED);
+
+            nk_layout_row_static(ctx, 200, nk_window_get_width(ctx), 1);
+
+            struct nk_list_view meshes_list;
             if (
-                nk_begin(
-                    ctx, "Tools", nk_rect(w-(w/4), 0, w/4, h),
-                    NK_WINDOW_TITLE | NK_WINDOW_BORDER
-                )
+                nk_list_view_begin(ctx, &meshes_list, "Lmeshes", NK_WINDOW_BORDER, 20, n_models)
             )
             {
+                for (size_t i = meshes_list.begin; i < meshes_list.end; i++)
+                {
+                    nk_layout_row_dynamic(ctx, 20, 1);
+                    if (nk_button_label(ctx, models[i].model_name))
+                    {
+                        selected_model = i;
+                    }
+                }
+                
 
-                nk_end(ctx);
+                nk_list_view_end(&meshes_list);
             }
 
-            nk_window_set_focus(ctx, "Tools");
+            nk_end(ctx);   
         }
+        nk_style_pop_color(ctx);
+        nk_style_pop_style_item(ctx);
+
+        nk_window_set_focus(ctx, "Toolkit");
         // */
         
-        glClearColor(0.35, 0.36, 0.23, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
         nk_glfw3_render(&glfw, NK_ANTI_ALIASING_ON, 512 * 1024, 128 * 1024);
-        glEnable(GL_DEPTH_TEST);
-        
-        // Process input
-        camera_process_keyboard(&cam, window);
-        camera_process_mouse(&cam, window, WIDTH, HEIGHT);
-        handle_mouse_picking(window, camMat);
-        
-        // Update camera matrices
-        camera_update_view(&cam);
-        float aspect = (float)WIDTH/(float)HEIGHT;
-        camera_update_projection(&cam, 45, aspect, 0.3, 100.0);
-        glm_mat4_mul(cam.projection, cam.view, camMat);
-
-        // --- DRAW MODELS ---
-        for (size_t i = 0; i < n_models; i++)
-        {
-            UniformSend4x4Matrix(models[i].shader_program, "camMat", camMat);
-            UniformSend4x4Matrix(models[i].shader_program, "model", models[i].model);
-
-            if (i == selected_model) {
-                UniformSendVec4(models[i].shader_program, "lightC", (vec4){1.0f, 0.0f, 0.0f, 1.0f});
-            } else {
-                UniformSendVec4(models[i].shader_program, "lightC", lightC);
-            }
-
-            UniformSendVec3(models[i].shader_program, "lightPos", c.position);
-            if (models[i].texture != 0)
-            {
-                TextureBindTexture(models[i], GL_TEXTURE_2D);
-            }
-            
-            EBODraw(models[i].indices_count, GL_UNSIGNED_INT, models[i].VAO);
-            //VAODraw(models[i].VAO, models[i].indices_count);
-        }
-
-        UniformSend4x4Matrix(c.shader_program, "camMat", camMat);
-        UniformSend4x4Matrix(c.shader_program, "model", c.model);
-        UniformSendVec4(c.shader_program, "lightC", lightC);
-        EBODraw(ARRAY_LEN(lightIndices), GL_UNSIGNED_INT, c.VAO);
+        glEnable(GL_DEPTH_TEST); // for some reason nuklear disables this and forgets to reenable
         
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // CLEANUP
-    /*
-    glDeleteVertexArrays(1, &m.VAO);
-    glDeleteBuffers(1, &m.VBO);
-    glDeleteBuffers(1, &m.EBO);
-    glDeleteTextures(1, &m.texture);
-    glDeleteProgram(m.shader_program);
-    */
+    
+    
     nk_glfw3_shutdown(&glfw);
     glfwDestroyWindow(window);
     glfwTerminate();

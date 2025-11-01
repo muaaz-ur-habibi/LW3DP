@@ -46,6 +46,9 @@ typedef struct
     GLfloat *vertices; // contains vertex coords, texture coords and normal coords in form x y z u v nx ny nz
     GLuint *indices;
     int vertex_count, index_count;
+    int parent_mesh;
+
+    const char *mesh_name;
 } Assimp_mesh;
 
 typedef struct
@@ -66,6 +69,9 @@ typedef struct
     vec3 position;
     vec4 color;
     int is_light;
+
+    const char *model_name;
+    int model_id, parent_id;
 } Model_blueprint;
 
 Model_blueprint RendererCreateModelAOS(

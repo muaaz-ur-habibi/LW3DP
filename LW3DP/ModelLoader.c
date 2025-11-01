@@ -1,10 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assimp/cimport.h>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 #include "headers/ModelLoader.h"
 
 void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene, 
@@ -69,6 +62,9 @@ void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene,
         }
     }
 
+    a_mesh->mesh_name = malloc(sizeof(const char) * mesh->mName.length);
+    a_mesh->mesh_name = strdup(mesh->mName.data);
+
     // 5. CORRECT ASSIGNMENT
     (*mesh_list)[mesh_idx] = *a_mesh;
     free(a_mesh);
@@ -96,8 +92,6 @@ Assimp_object LoadAssimp(const char *fname)
 
     ass.meshes = meshes;
     ass.n_meshes = scene->mNumMeshes;
-
-    printf("Loader indices check: no of indices=%d, first index=%d\n", meshes[0].index_count, meshes[0].indices[0]);
     
     aiReleaseImport(scene);
 

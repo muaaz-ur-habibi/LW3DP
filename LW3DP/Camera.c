@@ -90,8 +90,8 @@ void camera_process_mouse(Camera *cam, GLFWwindow *window, float width, float he
 		float rotY = cam->mouseSensitivity * (float)(mouseX - (width / 2)) / width;
 
 		// Calculates upcoming vertical change in the Orientation
-        vec3 normalized_right; // the 'right' is the perpendicular component to
-                                                // orientation and up
+        vec3 normalized_right;  // the 'right' is the perpendicular component to
+                                // orientation and up
         glm_cross(cam->orientation, cam->up, normalized_right);
         glm_normalize(normalized_right);
         glm_vec3_rotate(cam->orientation, glm_rad(-rotX), normalized_right);

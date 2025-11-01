@@ -119,7 +119,6 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
     
     for (size_t i = 0; i < ass.n_meshes; i++)
     {
-        printf("Creating mesh %d\n", i);
         models[i] = RendererCreateModelAOS(
             ass.meshes[i].vertices,
             ass.meshes[i].vertex_count * sizeof(GLfloat),
@@ -129,13 +128,8 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
         );
         
         models[i].indices_count = ass.meshes[i].index_count;
-
-        printf("Created mesh\n");
+        models[i].model_name = ass.meshes[i].mesh_name;
     }
-
-    printf("Model creater indices check: no of indices=%d, first index=%d\n", models[0].indices_count, models[0].indices[0]);
-
-    printf("Created array of meshes\n");
     return models;
 }
 
