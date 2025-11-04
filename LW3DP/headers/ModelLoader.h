@@ -7,9 +7,11 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <windows.h>
+#include <shlwapi.h>
+#include <strsafe.h>
+
 #include "Textures.h"
 
-void LW3DP_Loader(char *path, int line_buffer_size);
-OBJ_face *LoadOBJ(const char *fname, int buffer_length, int *n_faces);
 Assimp_object LoadAssimp(const char *fname);
 #endif

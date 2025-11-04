@@ -1,5 +1,7 @@
 #include "headers/Renderer.h"
 
+#include "headers/Textures.h"
+
 Model_blueprint RendererCreateModelAOS(
     GLfloat *vertices, GLsizeiptr vertices_size,
     GLint *indices, GLsizeiptr indices_size,
@@ -62,49 +64,6 @@ Model_blueprint RendererCreateModelAOS(
 }
 
 // creates the data for the vbo and ebo
-Model_blueprint RendererCreateObjModel(OBJ_face *faces, int nfaces, char *vertex_shader_path, char *fragment_shader_path)
-{
-    Model_blueprint model;
-    GLfloat *vertices_data = malloc( sizeof(GLfloat) * 24 * nfaces );
-    int v_idx = 0;
-
-    for (size_t i = 0; i < nfaces; i++) // for each face
-    {
-        for (size_t j = 0; j < 3; j++) // for each vertex
-        {
-            vertices_data[v_idx++] = faces[i].vertex[j * 3];
-            vertices_data[v_idx++] = faces[i].vertex[(j * 3) + 1];
-            vertices_data[v_idx++] = faces[i].vertex[(j * 3) + 2];
-
-            vertices_data[v_idx++] = faces[i].texture_coord[j * 2];
-            vertices_data[v_idx++] = faces[i].texture_coord[j * 2 + 1];
-
-            vertices_data[v_idx++] = faces[i].normal[j * 3];
-            vertices_data[v_idx++] = faces[i].normal[j * 3 + 1];
-            vertices_data[v_idx++] = faces[i].normal[j * 3 + 2];
-        }
-    }
-    
-    GLint *indices_data = malloc( sizeof(GLint) * (v_idx/8) );
-    int indices_written = 0;
-
-    for (size_t i = 0; i < v_idx/8; i++)
-    {
-        indices_data[i] = i; indices_written++;
-    }
-    
-    VAOAttribute *attribs = VAOCreateVAOAttributeArrays(3);
-    attribs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(0 * sizeof(float))};
-    attribs[1] = (VAOAttribute){1, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(3 * sizeof(float))};
-    attribs[2] = (VAOAttribute){2, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(5 * sizeof(float))};
-    
-    model = RendererCreateModelAOS(vertices_data, v_idx * sizeof(GLfloat), indices_data, indices_written * sizeof(GLint), attribs, 3, vertex_shader_path, fragment_shader_path);
-
-    model.indices_count = indices_written;
-
-    return model;
-}
-
 Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path, char *fragment_shader_path)
 {
     Model_blueprint *models;
@@ -129,8 +88,65 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
         
         models[i].indices_count = ass.meshes[i].index_count;
         models[i].model_name = ass.meshes[i].mesh_name;
+
+        if (ass.meshes[i].texture.has_texture)
+        {
+            models[i].texture = ass.meshes[i].texture.texture_id;
+
+            printf("RendererCreateModel() texture path [%s]\n", ass.meshes[i].texture.texture_path);
+            TextureCreateTexture(&models[i].texture, models[i].shader_program, "tex0", 0, ass.meshes[i].texture.texture_path);
+        } else
+        {
+            models[i].texture = 0;
+        }
     }
     return models;
+}
+
+Model_blueprint RendererCreateLight(char *light_vertex_shader, char *light_fragment_shader, vec4 light_color)
+{
+    GLfloat lightVertices[] =
+    { //     COORDINATES     //
+        -0.1f, -0.1f,  0.1f,
+        -0.1f, -0.1f, -0.1f,
+        0.1f, -0.1f, -0.1f,
+        0.1f, -0.1f,  0.1f,
+        -0.1f,  0.1f,  0.1f,
+        -0.1f,  0.1f, -0.1f,
+        0.1f,  0.1f, -0.1f,
+        0.1f,  0.1f,  0.1f
+    };
+
+    GLuint lightIndices[] =
+    {
+        0, 1, 2,
+        0, 2, 3,
+        0, 4, 7,
+        0, 7, 3,
+        3, 7, 6,
+        3, 6, 2,
+        2, 6, 5,
+        2, 5, 1,
+        1, 5, 4,
+        1, 4, 0,
+        4, 5, 6,
+        4, 6, 7
+    };
+
+    VAOAttribute *t_attrs = VAOCreateVAOAttributeArrays(1);
+    t_attrs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void *)0};
+    Model_blueprint c = RendererCreateModelAOS(
+        lightVertices, sizeof(lightVertices), lightIndices, sizeof(lightIndices),
+        t_attrs, 1, light_vertex_shader, light_fragment_shader
+    );
+    free(t_attrs);
+
+    RendererCopyVec3ToModel(&c, (vec3){-1.2f, 1.0f, 1.0f});
+    UniformSend4x4Matrix(c.shader_program, "model", c.model);
+
+    glm_vec4_copy3(light_color, c.color);
+
+    return c;
 }
 
 void DeleteModels(Model_blueprint m)

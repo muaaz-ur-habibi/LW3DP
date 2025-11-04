@@ -18,71 +18,31 @@
 #define NK_GLFW_GL3_IMPLEMENTATION
 #include <nuklear/nuklear_glfw_gl3.h>
 
-#include <windows.h>
-
 #include "headers/Camera.h"
 #include "headers/ModelLoader.h"
 
 #define ARRAY_LEN(array) (sizeof(array) / (sizeof((array)[0])))
 
 
-#define MODELS_INITIALAMOUNT 20
+#define MODELS_INITIALAMOUNT 2000
+#define LIGHTS_INITIALAMOUNT 10
 
-int selected_model = -1;
-vec3 selected_color = {1.0f, 0.0f, 0.0f}; // Red for selected
+int selected_model = -1, selected_light = -1;
+vec4 selected_color = {1.0f, 1.0f, 0.0f, 1.0f}; // selected color
 
 char *GLOBAL_VERTEX_SHADER_PATH = "shaders/basicVertexShader.glsl";
 char *GLOBAL_FRAGMENT_SHADER_PATH = "shaders/basicFragShader.frag";
 
+char *GLOBAL_LIGHT_VERTEX_SHADER = "shaders/lightVertexShader.glsl";
+char *GLOBAL_LIGHT_FRAGMENT_SHADER = "shaders/lightFragShader.frag";
+
+int WIREFRAME_MODE = 0;
+
 Camera cam;
-int WIDTH = 800; int HEIGHT = 800;
+int WIDTH = 1280; int HEIGHT = 720;
 int n_models, n_lights;
 Model_blueprint *models;
-Model_blueprint *light_model;
-
-int get_model_clicked(GLFWwindow* window, mat4 camMat) {
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    
-    // Convert to normalized screen coordinates
-    float mouseX = (xpos / WIDTH) * 2.0f - 1.0f;
-    float mouseY = 1.0f - (ypos / HEIGHT) * 2.0f;
-    
-    for (int i = 0; i < n_models; i++) {
-        // Transform model position to screen space
-        vec4 model_pos = {models[i].position[0], models[i].position[1], models[i].position[2], 1.0f}; // Center of model
-        vec4 screen_pos;
-        glm_mat4_mulv(camMat, model_pos, screen_pos);
-        
-        // Perspective divide
-        screen_pos[0] /= screen_pos[3];
-        screen_pos[1] /= screen_pos[3];
-        
-        // Check if mouse is near model in screen space
-        float dist = sqrtf(
-            (screen_pos[0] - mouseX) * (screen_pos[0] - mouseX) +
-            (screen_pos[1] - mouseY) * (screen_pos[1] - mouseY)
-        );
-        
-        // If mouse is close to model in screen space, select it
-        if (dist < 0.5f) { // Adjust this threshold as needed
-            return i;
-        }
-    }
-    
-    return -1;
-}
-
-void handle_mouse_picking(GLFWwindow* window, mat4 camMat) {
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-        selected_model = get_model_clicked(window, camMat);
-        if (selected_model != -1) {
-            // show controls
-        } else {
-            // hide controls
-        }
-    }
-}
+Model_blueprint *light_models;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -130,8 +90,6 @@ int main(int argc, char *argv[])
 
     glViewport(0, 0, WIDTH, HEIGHT);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
 
     ctx = nk_glfw3_init(&glfw, window, NK_GLFW3_INSTALL_CALLBACKS);
     nk_glfw3_font_stash_begin(&glfw, &atlas);
@@ -166,16 +124,18 @@ int main(int argc, char *argv[])
         4, 6, 7
     };
 
-    // creating a simple light model
+    // initialise the models array
     models = malloc( sizeof(Model_blueprint) * MODELS_INITIALAMOUNT );
+
+    // initialise the lights array
+    light_models = malloc( sizeof(Model_blueprint) * LIGHTS_INITIALAMOUNT );
 
     VAOAttribute *t_attrs = VAOCreateVAOAttributeArrays(1);
     t_attrs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void *)0};
     Model_blueprint c = RendererCreateModelAOS(
         lightVertices, sizeof(lightVertices), lightIndices, sizeof(lightIndices),
-        t_attrs, 1, "shaders/lightVertexShader.glsl", "shaders/lightFragShader.frag"
+        t_attrs, 1, GLOBAL_LIGHT_VERTEX_SHADER, GLOBAL_LIGHT_FRAGMENT_SHADER
     );
-
     free(t_attrs);
 
     RendererCopyVec3ToModel(&c, (vec3){-1.2f, 1.0f, 1.0f});
@@ -186,7 +146,7 @@ int main(int argc, char *argv[])
     camera_init(&cam, (vec3){0.0f, 0.0f, 2.0f});
 
     // lighting
-    vec4 lightC = {1.0f, 1.0f, 1.0f, 1.0f};
+    glm_vec4_copy((vec4){1.0f, 1.0f, 1.0f, 1.0f}, c.color);
 
     // ofn used for loading model files
     OPENFILENAME ofn;
@@ -202,15 +162,6 @@ int main(int argc, char *argv[])
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-    Assimp_object ass = LoadAssimp("D:/programming/LW3DP/LW3DP/models/simple_girl/girl OBJ.obj");
-    Model_blueprint *models_created = RendererCreateModel(ass, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
-
-    for (size_t i = 0; i < ass.n_meshes; i++)
-    {
-        models[n_models] = models_created[i]; n_models++;
-    }
-    
 
     while (!glfwWindowShouldClose(window))
     {
@@ -233,31 +184,39 @@ int main(int argc, char *argv[])
         /*
             DRAWING THE MODELS
         */
+        
+        if (WIREFRAME_MODE)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+
         for (size_t i = 0; i < n_models; i++)
         {
             UniformSend4x4Matrix(models[i].shader_program, "camMat", camMat);
             UniformSend4x4Matrix(models[i].shader_program, "model", models[i].model);
 
             if (i == selected_model) {
-                UniformSendVec4(models[i].shader_program, "lightC", (vec4){1.0f, 0.0f, 0.0f, 1.0f});
+                UniformSendVec4(models[i].shader_program, "lightC", selected_color);
             } else {
-                UniformSendVec4(models[i].shader_program, "lightC", lightC);
+                UniformSendVec4(models[i].shader_program, "lightC", c.color);
             }
 
             UniformSendVec3(models[i].shader_program, "lightPos", c.position);
+
             if (models[i].texture != 0)
             {
                 TextureBindTexture(models[i], GL_TEXTURE_2D);
             }
             
             EBODraw(models[i].indices_count, GL_UNSIGNED_INT, models[i].VAO);
-            //VAODraw(models[i].VAO, models[i].indices_count);
         }
 
         UniformSend4x4Matrix(c.shader_program, "camMat", camMat);
         UniformSend4x4Matrix(c.shader_program, "model", c.model);
-        UniformSendVec4(c.shader_program, "lightC", lightC);
+        UniformSendVec4(c.shader_program, "lightC", c.color);
         EBODraw(ARRAY_LEN(lightIndices), GL_UNSIGNED_INT, c.VAO);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         /*
             DRAWING THE GUI
@@ -292,27 +251,23 @@ int main(int argc, char *argv[])
                         {
                             models[n_models] = models_created[i]; n_models++;
                         }
-                        
-                    }
-                }
-                if (nk_menu_item_label(ctx, "Load OBJ", NK_TEXT_LEFT))
-                {
-                    ofn.lpstrFilter = "OBJ Files\0*.obj\0";
-                    if (GetOpenFileNameA(&ofn))
-                    {
-                        int n_faces = 0;
-                        OBJ_face *faces = LoadOBJ(ofn.lpstrFile, 4096, &n_faces);
-                        Model_blueprint model_created = RendererCreateObjModel(faces, n_faces, GLOBAL_VERTEX_SHADER_PATH, GLOBAL_FRAGMENT_SHADER_PATH);
-
-                        models[n_models] = model_created;
-                        n_models++;
                     }
                 }
 
                 nk_menu_end(ctx);
             }
+            if (nk_menu_begin_label(ctx, "Models", NK_TEXT_LEFT, nk_vec2(120, 200)))
+            {
+                nk_layout_row_dynamic(ctx, 22, 1);
+
+                if (nk_menu_item_label(ctx, "Create light", NK_TEXT_LEFT))
+                {
+                    
+                }
+
+                nk_menu_end(ctx);
+            }
             nk_menubar_end(ctx);
-            
 
             nk_end(ctx);
         }
@@ -325,9 +280,9 @@ int main(int argc, char *argv[])
         nk_style_push_style_item(ctx, &s->window.fixed_background, nk_style_item_color(nk_rgba(100, 0, 0, 255)));
 
         if (
-        nk_begin(
-            ctx, "Toolkit", nk_rect(w-(w/4), 0, w/4, h),
-            NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_BACKGROUND
+            nk_begin(
+                ctx, "Toolkit", nk_rect(w-(w/4), 0, w/4, h),
+                NK_WINDOW_TITLE | NK_WINDOW_BORDER | NK_WINDOW_BACKGROUND
             )
         )
         {
@@ -349,7 +304,26 @@ int main(int argc, char *argv[])
                         selected_model = i;
                     }
                 }
-                
+
+                nk_list_view_end(&meshes_list);
+
+                nk_layout_row_dynamic(ctx, 20, 1);
+                nk_checkbox_label(ctx, "Wireframe mode", &WIREFRAME_MODE);
+            }
+
+            struct nk_list_view lights_list;
+            if (
+                nk_list_view_begin(ctx, &meshes_list, "Llights", NK_WINDOW_BORDER, 20, n_lights)
+            )
+            {
+                for (size_t i = lights_list.begin; i < lights_list.end; i++)
+                {
+                    nk_layout_row_dynamic(ctx, 20, 1);
+                    if (nk_button_label(ctx, light_models[i].model_name))
+                    {
+                        selected_light = i;
+                    }
+                }
 
                 nk_list_view_end(&meshes_list);
             }
