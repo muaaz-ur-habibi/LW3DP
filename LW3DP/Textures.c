@@ -5,12 +5,8 @@ void TextureCreateTexture(GLuint *texture, GLuint shader_program, char *texture_
 {
     int wImg, hImg, nColChannelsl;
     unsigned char *Tbytes = NULL;
-
-    printf("texture before creation %u\n", *texture);
     
     *texture = TextureCreateFromFile(texture_filepath, &wImg, &hImg, &nColChannelsl, &Tbytes, GL_TEXTURE_2D);
-
-    printf("texture after creation %u\n", *texture);
     
     if (Tbytes == NULL) { 
         printf("Error in texture image\n");
@@ -34,16 +30,11 @@ void TextureCreateTexture(GLuint *texture, GLuint shader_program, char *texture_
 
 GLuint TextureCreateFromFile(char *path, int *w, int *h, int *nColChnls, unsigned char **bytes, GLenum type)
 {
-    // printf("trying to load texture from path [%s]\n", path);
-    stbi_set_flip_vertically_on_load(GL_TRUE);
     *bytes = stbi_load(path, w, h, nColChnls, 0);
-    printf("loaded texture from path\n");
 
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(type, texture);
-
-    printf("Loaded texture\n");
 
     return texture;
 }

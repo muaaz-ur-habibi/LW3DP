@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
     
     // create camera
     mat4 camMat;
-    camera_init(&cam, (vec3){0.0f, 0.0f, 2.0f});
+    camera_init(&cam, (vec3){0.0f, 0.0f, 5.0f});
 
     // lighting
     glm_vec4_copy((vec4){1.0f, 1.0f, 1.0f, 1.0f}, c.color);
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
         // Update camera matrices
         camera_update_view(&cam);
         float aspect = (float)WIDTH/(float)HEIGHT;
-        camera_update_projection(&cam, 45, aspect, 0.3, 100.0);
+        camera_update_projection(&cam, 45, aspect, 0.1, 100.0);
         glm_mat4_mul(cam.projection, cam.view, camMat);
 
         /*

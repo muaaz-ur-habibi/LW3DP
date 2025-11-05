@@ -64,6 +64,7 @@ void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene,
 
     a_mesh->mesh_name = malloc(sizeof(const char) * mesh->mName.length);
     a_mesh->mesh_name = strdup(mesh->mName.data);
+    a_mesh->identifier = mesh_idx;
 
     // 5. CORRECT ASSIGNMENT
     (*mesh_list)[mesh_idx] = *a_mesh;
@@ -85,7 +86,9 @@ void ProcessMaterialTextures(struct aiMaterial **materials, struct aiMesh *mesh,
 {
     const struct aiMaterial *mat = materials[mesh->mMaterialIndex];
     struct aiString path;
-    aiReturn ok = aiGetMaterialTexture(
+    aiReturn ok;
+
+    ok = aiGetMaterialTexture(
         mat, aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
     );
 
@@ -110,20 +113,75 @@ void ProcessMaterialTextures(struct aiMaterial **materials, struct aiMesh *mesh,
 
             created_mesh->texture.texture_path = strdup(actual_path);
             created_mesh->texture.has_texture = 1;
-
-            printf("Texture handling texture path [%s]\n", created_mesh->texture.texture_path);
         }
     } else
     {
+        printf("mesh %d has no diffuse texture\n", created_mesh->identifier);
         created_mesh->texture.has_texture = 0;
+    }
+
+    ok = aiGetMaterialTexture(
+        mat, aiTextureType_UNKNOWN, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
+    );
+
+    if (ok = AI_SUCCESS)
+    {
+        printf("Unknown texture found for mesh %d\n", created_mesh->identifier);
+    }
+
+    ok = aiGetMaterialTexture(
+        mat, aiTextureType_SPECULAR, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
+    );
+
+    if (ok = AI_SUCCESS)
+    {
+        printf("Specular texture found for mesh %d\n", created_mesh->identifier);
+    } else
+    {
+        printf("mesh %d has no specular texture\n", created_mesh->identifier);
+    }
+    
+    ok = aiGetMaterialTexture(
+        mat, aiTextureType_NORMALS, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
+    );
+
+    if (ok = AI_SUCCESS)
+    {
+        printf("Normal texture found for mesh %d\n", created_mesh->identifier);
+    } else
+    {
+        printf("mesh %d has no normal texture\n", created_mesh->identifier);
+    }
+
+    ok = aiGetMaterialTexture(
+        mat, aiTextureType_HEIGHT, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
+    );
+    
+    if (ok = AI_SUCCESS)
+    {
+        printf("Height texture found for mesh %d\n", created_mesh->identifier);
+    } else
+    {
+        printf("mesh %d has no height texture\n", created_mesh->identifier);
+    }
+
+    ok = aiGetMaterialTexture(
+        mat, aiTextureType_LIGHTMAP, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
+    );
+    
+    if (ok = AI_SUCCESS)
+    {
+        printf("Lightmap texture found for mesh %d\n", created_mesh->identifier);
+    } else
+    {
+        printf("mesh %d has no lightmap texture\n", created_mesh->identifier);
     }
 }
 
 Assimp_object LoadAssimp(const char *fname)
 {
     const struct aiScene *scene = aiImportFile(fname, 
-        aiProcess_Triangulate |
-        aiProcess_FlipUVs | aiProcess_CalcTangentSpace |
+        aiProcess_Triangulate | aiProcess_CalcTangentSpace |
         aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
     );
 
@@ -139,10 +197,6 @@ Assimp_object LoadAssimp(const char *fname)
     {
         ProcessAssimpMesh(scene->mMeshes[i], scene, &meshes, i);
         ProcessMaterialTextures(scene->mMaterials, scene->mMeshes[i], &meshes[i], model_path);
-        if (meshes[i].texture.has_texture)
-        {
-            printf("Loader texture path [%s]\n", meshes[i].texture.texture_path);
-        }
     }
 
     ass.meshes = meshes;

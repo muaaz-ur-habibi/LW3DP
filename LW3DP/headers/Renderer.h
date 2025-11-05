@@ -25,6 +25,8 @@ typedef struct
     int vertex_count, index_count;
     int parent_mesh;
 
+    int identifier;
+
     Assimp_texture texture;
 
     const char *mesh_name;

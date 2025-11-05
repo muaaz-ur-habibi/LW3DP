@@ -89,15 +89,11 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
         models[i].indices_count = ass.meshes[i].index_count;
         models[i].model_name = ass.meshes[i].mesh_name;
 
+        models[i].texture = 0;
+
         if (ass.meshes[i].texture.has_texture)
         {
-            models[i].texture = ass.meshes[i].texture.texture_id;
-
-            printf("RendererCreateModel() texture path [%s]\n", ass.meshes[i].texture.texture_path);
             TextureCreateTexture(&models[i].texture, models[i].shader_program, "tex0", 0, ass.meshes[i].texture.texture_path);
-        } else
-        {
-            models[i].texture = 0;
         }
     }
     return models;
