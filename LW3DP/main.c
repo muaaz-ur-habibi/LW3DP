@@ -1,3 +1,6 @@
+// right now we are computing transformations on cpu, later change this to gpu using shaders
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,7 +27,7 @@
 #define ARRAY_LEN(array) (sizeof(array) / (sizeof((array)[0])))
 
 
-#define MODELS_INITIALAMOUNT 2000
+#define MODELS_INITIALAMOUNT 20000
 #define LIGHTS_INITIALAMOUNT 10
 
 int selected_model = -1, selected_light = -1;

@@ -13,9 +13,11 @@
 
 typedef struct
 {
-    int has_texture;
+    int has_texture, embedded;
     unsigned int texture_id;
     char *texture_path;
+    unsigned char *embedded_data;
+    int embedded_len;
 } Assimp_texture;
 
 typedef struct

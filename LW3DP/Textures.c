@@ -1,18 +1,31 @@
 #include "headers/Textures.h"
 
 void TextureCreateTexture(GLuint *texture, GLuint shader_program, char *texture_uniform_name,
-    unsigned int texture_id_amount, char *texture_filepath)
+    unsigned int texture_id_amount, char *texture_filepath, int embedded, Assimp_texture embedded_texture)
 {
     int wImg, hImg, nColChannelsl;
     unsigned char *Tbytes = NULL;
     
-    *texture = TextureCreateFromFile(texture_filepath, &wImg, &hImg, &nColChannelsl, &Tbytes, GL_TEXTURE_2D);
-    
-    if (Tbytes == NULL) { 
-        printf("Error in texture image\n");
-        printf("FAILURE REASON [%s]\n", stbi_failure_reason());
-        exit(0);
-        return;
+    if (!embedded)
+    {
+        *texture = TextureCreateFromFile(texture_filepath, &wImg, &hImg, &nColChannelsl, &Tbytes, GL_TEXTURE_2D);
+
+        if (Tbytes == NULL) { 
+            printf("Error in texture image with path %s\n", texture_filepath);
+            printf("FAILURE REASON [%s]\n", stbi_failure_reason());
+            exit(0);
+            return;
+        }
+    } else
+    {
+        *texture = TextureCreateFromEmbedded(embedded_texture.embedded_data, embedded_texture.embedded_len, &wImg, &hImg, &nColChannelsl, &Tbytes, GL_TEXTURE_2D);
+
+        if (Tbytes == NULL) { 
+            printf("Error in texture data with length %d\n", embedded_texture.embedded_len);
+            printf("FAILURE REASON [%s]\n", stbi_failure_reason());
+            exit(0);
+            return;
+        }
     }
     
     glActiveTexture(GL_TEXTURE0);
@@ -34,7 +47,16 @@ GLuint TextureCreateFromFile(char *path, int *w, int *h, int *nColChnls, unsigne
 
     GLuint texture;
     glGenTextures(1, &texture);
-    glBindTexture(type, texture);
+
+    return texture;
+}
+
+GLuint TextureCreateFromEmbedded(unsigned char *data, int len, int *w, int *h, int *nColChannels, unsigned char **bytes, GLenum type)
+{
+    *bytes = stbi_load_from_memory((const stbi_uc*)data, len, w, h, nColChannels, 0);
+
+    GLuint texture;
+    glGenTextures(1, &texture);
 
     return texture;
 }

@@ -10,6 +10,7 @@ Model_blueprint RendererCreateModelAOS(
 )
 {
     Model_blueprint model;
+    
     model.vertices_size = vertices_size;
     model.indices_size = indices_size;
 
@@ -93,7 +94,7 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
 
         if (ass.meshes[i].texture.has_texture)
         {
-            TextureCreateTexture(&models[i].texture, models[i].shader_program, "tex0", 0, ass.meshes[i].texture.texture_path);
+            TextureCreateTexture(&models[i].texture, models[i].shader_program, "tex0", 0, ass.meshes[i].texture.texture_path, ass.meshes[i].texture.embedded, ass.meshes[i].texture);
         }
     }
     return models;
