@@ -9,7 +9,7 @@ void VBOBindWithData(GLuint VBO, GLsizeiptr size, const void *data, GLenum usage
     glBufferData(GL_ARRAY_BUFFER, size, data, usage);
 }
 
-void VBODump(GLuint VBO, GLsizeiptr size)
+void VBODump(GLuint VBO, GLsizeiptr size, int dump_file)
 {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     
@@ -20,10 +20,18 @@ void VBODump(GLuint VBO, GLsizeiptr size)
                size, size / sizeof(GLfloat));
         
         int num_floats = size / sizeof(GLfloat);
+        FILE *f = fopen("VBOdump.txt", "w");
         for (int i = 0; i < num_floats; i++) {
-            printf("VBO[%d] = %.3f\n", i, data[i]);
-            
+            if (dump_file)
+            {
+                char to_store[128];
+                fprintf(f, "VBO[%d] = %.2f\n", i, data[i]);
+            }
+            else {
+                printf("VBO[%d] = %.3f\n", i, data[i]);
+            }
         }
+        fclose(f);
         printf("\n");
         
         glUnmapBuffer(GL_ARRAY_BUFFER);

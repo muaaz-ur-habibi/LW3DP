@@ -13,9 +13,11 @@ uniform mat4 model;
 
 void main()
 {
-    currentPos = vec3(model * vec4(aPos, 1.0));  
+    vec4 v4Pos = model * vec4(aPos, 1.0f);
+    currentPos = v4Pos.xyz;  
 
-    gl_Position = camMat * vec4(currentPos, 1.0);
+    gl_Position = camMat * v4Pos;
+
     texCoord = aTex;
-    Normal = aNormal;
+    Normal = mat3(transpose(inverse(model))) * aNormal;
 }

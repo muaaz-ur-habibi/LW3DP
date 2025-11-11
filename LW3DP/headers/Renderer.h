@@ -31,6 +31,8 @@ typedef struct
 
     Assimp_texture texture;
 
+    mat4 transformation;
+
     const char *mesh_name;
 } Assimp_mesh;
 

@@ -23,12 +23,9 @@ void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene,
     for (size_t i = 0; i < mesh->mNumVertices; i++)
     {
         // Position
-        vec3 v = {mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
-        //glm_mat4_mulv3(transform, v, 1.0f, v);
-
-        a_mesh->vertices[ptr++] = v[0];
-        a_mesh->vertices[ptr++] = v[1];
-        a_mesh->vertices[ptr++] = v[2];
+        a_mesh->vertices[ptr++] = mesh->mVertices[i].x;
+        a_mesh->vertices[ptr++] = mesh->mVertices[i].y;
+        a_mesh->vertices[ptr++] = mesh->mVertices[i].z;
 
         // Texture coordinates
         if (mesh->mTextureCoords[0]) {
@@ -41,26 +38,9 @@ void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene,
 
         // Normals
         if (mesh->mNormals) {
-            mat3 normal_transform;
-            
-            for (size_t k = 0; k < 3; k++)
-            {
-                for (size_t j = 0; j < 3; j++)
-                {
-                    normal_transform[k][j] = transform[k][j];
-                }
-            }
-
-            glm_mat3_inv(normal_transform, normal_transform);
-            glm_mat3_transpose(normal_transform);
-
-            vec3 v = {mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
-
-            //glm_mat3_mulv(normal_transform, v, v);
-
-            a_mesh->vertices[ptr++] = v[0];
-            a_mesh->vertices[ptr++] = v[1];
-            a_mesh->vertices[ptr++] = v[2];
+            a_mesh->vertices[ptr++] = mesh->mNormals[i].x;
+            a_mesh->vertices[ptr++] = mesh->mNormals[i].y;
+            a_mesh->vertices[ptr++] = mesh->mNormals[i].z;
         } else {
             a_mesh->vertices[ptr++] = 0.0f;
             a_mesh->vertices[ptr++] = 0.0f;
@@ -71,8 +51,11 @@ void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene,
     a_mesh->vertex_count = ptr;
     
     // 3. PROCESS INDICES
-    a_mesh->index_count = mesh->mNumFaces * 3; // Assuming triangulated
+    a_mesh->index_count = mesh->mNumFaces * 3;
     a_mesh->indices = (unsigned int*)malloc(sizeof(unsigned int) * a_mesh->index_count);
+
+    glm_mat4_identity(a_mesh->transformation);
+    glm_mat4_copy(transform, a_mesh->transformation);
     
     if (a_mesh->indices) {
         unsigned int index_ptr = 0;
@@ -84,7 +67,6 @@ void ProcessAssimpMesh(struct aiMesh *mesh, const struct aiScene *scene,
         }
     }
 
-    a_mesh->mesh_name = malloc(sizeof(const char) * mesh->mName.length);
     a_mesh->mesh_name = strdup(mesh->mName.data);
     a_mesh->identifier = mesh_idx;
 
@@ -155,80 +137,25 @@ void ProcessMaterialTextures(struct aiMaterial **materials, struct aiMesh *mesh,
         printf("mesh %d has no diffuse texture\n", created_mesh->identifier);
         created_mesh->texture.has_texture = 0;
     }
-
-    ok = aiGetMaterialTexture(
-        mat, aiTextureType_UNKNOWN, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
-    );
-
-    if (ok = AI_SUCCESS)
-    {
-        printf("Unknown texture found for mesh %d\n", created_mesh->identifier);
-    }
-
-    ok = aiGetMaterialTexture(
-        mat, aiTextureType_SPECULAR, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
-    );
-
-    if (ok = AI_SUCCESS)
-    {
-        printf("Specular texture found for mesh %d\n", created_mesh->identifier);
-    } else
-    {
-        printf("mesh %d has no specular texture\n", created_mesh->identifier);
-    }
-    
-    ok = aiGetMaterialTexture(
-        mat, aiTextureType_NORMALS, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
-    );
-
-    if (ok = AI_SUCCESS)
-    {
-        printf("Normal texture found for mesh %d\n", created_mesh->identifier);
-    } else
-    {
-        printf("mesh %d has no normal texture\n", created_mesh->identifier);
-    }
-
-    ok = aiGetMaterialTexture(
-        mat, aiTextureType_HEIGHT, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
-    );
-    
-    if (ok = AI_SUCCESS)
-    {
-        printf("Height texture found for mesh %d\n", created_mesh->identifier);
-    } else
-    {
-        printf("mesh %d has no height texture\n", created_mesh->identifier);
-    }
-
-    ok = aiGetMaterialTexture(
-        mat, aiTextureType_LIGHTMAP, 0, &path, NULL, NULL, NULL, NULL, NULL, NULL
-    );
-    
-    if (ok = AI_SUCCESS)
-    {
-        printf("Lightmap texture found for mesh %d\n", created_mesh->identifier);
-    } else
-    {
-        printf("mesh %d has no lightmap texture\n", created_mesh->identifier);
-    }
 }
 
 
-static inline void aimat4x4_to_cglm(const struct aiMatrix4x4 m, mat4 out)
+static inline void aimat4x4_to_cglm(const struct aiMatrix4x4 *m, mat4 out)
 {
-    out[0][0] = m.a1; out[0][1] = m.b1; out[0][2] = m.c1; out[0][3] = m.d1;
-    out[1][0] = m.a2; out[1][1] = m.b2; out[1][2] = m.c2; out[1][3] = m.d2;
-    out[2][0] = m.a3; out[2][1] = m.b3; out[2][2] = m.c3; out[2][3] = m.d3;
-    out[3][0] = m.a4; out[3][1] = m.b4; out[3][2] = m.c4; out[3][3] = m.d4;
+    out[0][0] = m->a1; out[0][1] = m->b1; out[0][2] = m->c1; out[0][3] = m->d1;
+    out[1][0] = m->a2; out[1][1] = m->b2; out[1][2] = m->c2; out[1][3] = m->d2;
+    out[2][0] = m->a3; out[2][1] = m->b3; out[2][2] = m->c3; out[2][3] = m->d3;
+    out[3][0] = m->a4; out[3][1] = m->b4; out[3][2] = m->c4; out[3][3] = m->d4;
 }
 
 void ProcessAssimpNode(const struct aiScene *scene, const struct aiNode *node, mat4 parentMat, Assimp_mesh **meshes)
 {
-    mat4 local, world;
+    mat4 local, world; glm_mat4_identity(local); glm_mat4_identity(world);
 
-    aimat4x4_to_cglm(node->mTransformation, local);
-    glm_mat4_mul(parentMat, local, world);
+    aimat4x4_to_cglm(&node->mTransformation, local);
+    glm_mat4_transpose(local);
+
+    glm_mat4_mul(local, parentMat, world);
 
     for (size_t i = 0; i < node->mNumMeshes; i++)
     {
@@ -243,7 +170,7 @@ void ProcessAssimpNode(const struct aiScene *scene, const struct aiNode *node, m
 
 Assimp_object LoadAssimp(const char *fname)
 {
-    const struct aiScene *scene = aiImportFile(fname, 
+    const struct aiScene *scene = aiImportFile(fname,
         aiProcess_Triangulate |
         aiProcess_CalcTangentSpace |
         aiProcess_GenSmoothNormals |
@@ -267,7 +194,6 @@ Assimp_object LoadAssimp(const char *fname)
 
     for (size_t i = 0; i < scene->mNumMeshes; i++)
     {
-        //ProcessAssimpMesh(scene->mMeshes[i], scene, &meshes, test_matrice);
         ProcessMaterialTextures(scene->mMaterials, scene->mMeshes[i], &meshes[i], model_path, scene);
     }
 

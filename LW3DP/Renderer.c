@@ -59,8 +59,6 @@ Model_blueprint RendererCreateModelAOS(
     VAOBindVertexArray(0);
     EBOBindWithData(0, 0, (void *)0, 0);
 
-    glm_mat4_identity(model.model);
-
     return model;
 }
 
@@ -89,6 +87,15 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
         
         models[i].indices_count = ass.meshes[i].index_count;
         models[i].model_name = ass.meshes[i].mesh_name;
+
+        glm_mat4_identity(models[i].model);
+        for (size_t k = 0; k < 4; k++)
+        {
+            for (size_t j = 0; j < 4; j++)
+            {
+                models[i].model[k][j] = ass.meshes[i].transformation[k][j];
+            }
+        }
 
         models[i].texture = 0;
 
@@ -136,6 +143,7 @@ Model_blueprint RendererCreateLight(char *light_vertex_shader, char *light_fragm
         lightVertices, sizeof(lightVertices), lightIndices, sizeof(lightIndices),
         t_attrs, 1, light_vertex_shader, light_fragment_shader
     );
+    glm_mat4_identity(c.model);
     free(t_attrs);
 
     RendererCopyVec3ToModel(&c, (vec3){-1.2f, 1.0f, 1.0f});

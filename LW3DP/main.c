@@ -1,6 +1,3 @@
-// right now we are computing transformations on cpu, later change this to gpu using shaders
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,7 +28,7 @@
 #define LIGHTS_INITIALAMOUNT 10
 
 int selected_model = -1, selected_light = -1;
-vec4 selected_color = {1.0f, 1.0f, 0.0f, 1.0f}; // selected color
+vec4 selected_color = {1.0f, 0.0f, 0.0f, 1.0f}; // selected color
 
 char *GLOBAL_VERTEX_SHADER_PATH = "shaders/basicVertexShader.glsl";
 char *GLOBAL_FRAGMENT_SHADER_PATH = "shaders/basicFragShader.frag";
@@ -139,6 +136,7 @@ int main(int argc, char *argv[])
         lightVertices, sizeof(lightVertices), lightIndices, sizeof(lightIndices),
         t_attrs, 1, GLOBAL_LIGHT_VERTEX_SHADER, GLOBAL_LIGHT_FRAGMENT_SHADER
     );
+    glm_mat4_identity(c.model);
     free(t_attrs);
 
     RendererCopyVec3ToModel(&c, (vec3){-1.2f, 1.0f, 1.0f});
@@ -254,6 +252,8 @@ int main(int argc, char *argv[])
                         {
                             models[n_models] = models_created[i]; n_models++;
                         }
+
+                        VBODump(models[0].VBO, models[0].vertices_size, 1);
                     }
                 }
 

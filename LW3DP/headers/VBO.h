@@ -4,4 +4,4 @@
 
 void VBOBindWithData(GLuint VBO, GLsizeiptr size, const void *data, GLenum usage);
 void VBOSimpleBind(GLuint VBO);
-void VBODump(GLuint VBO, GLsizeiptr size);
+void VBODump(GLuint VBO, GLsizeiptr size, int dump_file);
