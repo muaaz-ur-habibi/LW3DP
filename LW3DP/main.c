@@ -196,6 +196,8 @@ int main(int argc, char *argv[])
             UniformSend4x4Matrix(models[i].shader_program, "camMat", camMat);
             UniformSend4x4Matrix(models[i].shader_program, "model", models[i].model);
 
+            UniformSend4x4Matrices(models[i].shader_program, "boneTransforms", models[i].bone_transforms, 100);
+
             if (i == selected_model) {
                 UniformSendVec4(models[i].shader_program, "lightC", selected_color);
             } else {
@@ -252,8 +254,6 @@ int main(int argc, char *argv[])
                         {
                             models[n_models] = models_created[i]; n_models++;
                         }
-
-                        VBODump(models[0].VBO, models[0].vertices_size, 1);
                     }
                 }
 

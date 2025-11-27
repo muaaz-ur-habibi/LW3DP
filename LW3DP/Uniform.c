@@ -7,6 +7,13 @@ void UniformSend4x4Matrix(GLuint shader_program, char *uniform_name, mat4 matrix
     GL_FALSE, (const float *)matrix);
 }
 
+void UniformSend4x4Matrices(GLuint shader_program, char *uniform_name, mat4 *matrices, int count)
+{
+    UseShaderProgram(shader_program);
+    glUniformMatrix4fv(glGetUniformLocation(shader_program, uniform_name), count,
+    GL_FALSE, (const float *)matrices);
+}
+
 void UniformSendVec4(GLuint shader_program, char *uniform_name, vec4 vector)
 {
     UseShaderProgram(shader_program);

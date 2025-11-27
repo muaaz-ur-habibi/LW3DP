@@ -26,7 +26,7 @@ GLuint CreateCompileShader(GLenum type, const GLchar *shaderSource)
 
     char log[512];
     glGetShaderInfoLog(shader, 512, NULL, log);
-    printf("Shader Compile Log:\n%s\n", log);
+    //printf("Shader Compile Log:\n%s\n", log);
 
     return shader;
 }

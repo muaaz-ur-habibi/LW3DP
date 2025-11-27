@@ -39,7 +39,7 @@ Model_blueprint RendererCreateModelAOS(
     DeleteShaders(shaders, 2);
     model.shader_program = shader_program;
 
-    GLuint VAO, VBO, EBO;
+    GLuint VAO, VBO, EBO, bone_VBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
@@ -68,10 +68,13 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
     Model_blueprint *models;
     models = malloc(sizeof(Model_blueprint) * ass.n_meshes);
 
-    VAOAttribute *attribs = VAOCreateVAOAttributeArrays(3);
-    attribs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(0 * sizeof(float))};
-    attribs[1] = (VAOAttribute){1, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(3 * sizeof(float))};
-    attribs[2] = (VAOAttribute){2, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *)(5 * sizeof(float))};
+    int vertex_size = 16, vao_attrs = 5;
+    VAOAttribute *attribs = VAOCreateVAOAttributeArrays(vao_attrs);
+    attribs[0] = (VAOAttribute){0, 3, GL_FLOAT, GL_FALSE, vertex_size*sizeof(float), (void *)(0 * sizeof(float))};
+    attribs[1] = (VAOAttribute){1, 2, GL_FLOAT, GL_FALSE, vertex_size*sizeof(float), (void *)(3 * sizeof(float))};
+    attribs[2] = (VAOAttribute){2, 3, GL_FLOAT, GL_FALSE, vertex_size*sizeof(float), (void *)(5 * sizeof(float))};
+    attribs[3] = (VAOAttribute){3, 4, GL_FLOAT, GL_FALSE, vertex_size*sizeof(int), (void *)(8 * sizeof(float))};
+    attribs[4] = (VAOAttribute){4, 4, GL_FLOAT, GL_FALSE, vertex_size*sizeof(float), (void *)(12 * sizeof(float))};
 
     printf("Starting to create model\n");
     
@@ -82,20 +85,19 @@ Model_blueprint *RendererCreateModel(Assimp_object ass, char *vertex_shader_path
             ass.meshes[i].vertex_count * sizeof(GLfloat),
             ass.meshes[i].indices,
             ass.meshes[i].index_count * sizeof(GLuint),
-            attribs, 3, vertex_shader_path, fragment_shader_path
+            attribs, vao_attrs,
+            vertex_shader_path, fragment_shader_path
         );
         
         models[i].indices_count = ass.meshes[i].index_count;
         models[i].model_name = ass.meshes[i].mesh_name;
 
         glm_mat4_identity(models[i].model);
-        for (size_t k = 0; k < 4; k++)
-        {
-            for (size_t j = 0; j < 4; j++)
-            {
-                models[i].model[k][j] = ass.meshes[i].transformation[k][j];
-            }
-        }
+        glm_mat4_copy(ass.meshes[i].transformation, models[i].model);
+
+        models[i].bone_transforms = calloc(100, sizeof(mat4));
+
+        models[i].bone_transforms = ass.meshes[i].bone_offset_matrices;
 
         models[i].texture = 0;
 
